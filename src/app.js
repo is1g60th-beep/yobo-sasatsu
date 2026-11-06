@@ -31,11 +31,14 @@ function render(){
 
 // ===== 対象物一覧 =====
 function vList(){
+  return `<div class="bar"><h1>査察対象物</h1><button class="btn pri" data-act="new">＋ 新規登録</button></div>
+  <input class="search" type="search" placeholder="名称・所在地で検索" value="${esc(V.q || '')}" data-input="q">
+  <div id="res-q">${listResults()}</div>`;
+}
+function listResults(){
   const q = (V.q || '').trim();
   const list = S.objects.filter(o => !q || (o.name + o.addr + o.owner).includes(q)).sort((a, b) => (b.updated || 0) - (a.updated || 0));
-  return `<div class="bar"><h1>査察対象物</h1><button class="btn pri" data-act="new">＋ 新規登録</button></div>
-  <input class="search" placeholder="名称・所在地で検索" value="${esc(q)}" data-input="q">
-  ${list.length ? list.map(o => {
+  return `${list.length ? list.map(o => {
     const j = judge(o), c = sasatsuClass(o, j);
     const ins = S.inspections.filter(i => i.objId === o.id).sort((a, b) => b.date.localeCompare(a.date));
     const open = ins.flatMap(i => i.findings || []).filter(f => f.status !== 'done').length;
@@ -43,7 +46,7 @@ function vList(){
       <div class="t">${esc(o.name || '（名称未設定）')}</div>
       <div class="s">${esc(USE[o.use]?.label || '')} ${esc(USE[o.use]?.name || '')}</div>
       <div class="chips"><span class="chip k${c.k}">${c.label}</span>${ins[0] ? `<span class="chip">前回 ${wareki(ins[0].date)}</span>` : '<span class="chip">査察記録なし</span>'}${open ? `<span class="chip ng">未改修 ${open}件</span>` : ''}</div>
-    </button>`; }).join('') : `<div class="empty">まだ対象物がありません。<br>「＋ 新規登録」から用途・規模を入力すると、設置が必要な消防用設備等と査察区分を判定します。</div>`}`;
+    </button>`; }).join('') : `<div class="empty">${q ? '該当する対象物がありません。' : '「＋ 新規登録」から用途・規模を入力すると、設置が必要な消防用設備等と査察区分を判定します。'}</div>`}`;
 }
 
 // ===== 対象物編集 =====
@@ -270,13 +273,16 @@ function lawResults(q, filt){
   return out;
 }
 function vLaws(){
+  return `<div class="bar"><h1>条文検索</h1></div>
+  <input class="search" type="search" placeholder="例：避難口 / 厨房 / 令21条 / 条例23条" value="${esc(V.lawQ || '')}" data-input="lawQ">
+  <div class="chips f">${[['all','すべて'],['nat','消防法令（要旨）'],['loc','揖斐郡 条例・規程（全文）'],['kok','告示']].map(([k, l]) => `<button class="chip ${V.lawF === k ? 'on' : ''}" data-act="lawf" data-k="${k}">${l}</button>`).join('')}</div>
+  <div id="res-lawQ">${lawResultsHTML()}</div>`;
+}
+function lawResultsHTML(){
   const q = V.lawQ || '';
   const rs = lawResults(q, V.lawF);
   const lim = 60;
-  return `<div class="bar"><h1>条文検索</h1></div>
-  <input class="search" placeholder="例：避難口 / 厨房 / 令21条 / 条例23条" value="${esc(q)}" data-input="lawQ">
-  <div class="chips f">${[['all','すべて'],['nat','消防法令（要旨）'],['loc','揖斐郡 条例・規程（全文）'],['kok','告示']].map(([k, l]) => `<button class="chip ${V.lawF === k ? 'on' : ''}" data-act="lawf" data-k="${k}">${l}</button>`).join('')}</div>
-  <div class="s">${rs.length}件${rs.length > lim ? `（先頭${lim}件を表示）` : ''}${!q ? ' ・ キーワードを入れて検索（未入力時は査察規程を表示）' : ''}</div>
+  return `<div class="s">${rs.length}件${rs.length > lim ? `（先頭${lim}件を表示）` : ''}${!q ? ' ・ キーワードを入れて検索（未入力時は査察規程を表示）' : ''}</div>
   ${rs.slice(0, lim).map(r => `<details class="card law-r ${r.kind}"><summary><span class="tag">${{ nat: '法令', loc: '揖斐郡', kok: '告示' }[r.kind]}</span><b>${esc(r.title)}</b> ${esc(r.head)}</summary>
     ${r.text ? `<div class="lt">${hl(esc(r.text), q)}</div>` : ''}<a href="${esc(r.url)}" target="_blank" rel="noopener">${r.kind === 'nat' ? 'e-Gov 法令検索で正文を見る' : r.kind === 'loc' ? '原本PDF（fd-ibi.jp）' : '告示を開く'} ↗</a>${r.kind === 'nat' ? '<div class="note">要旨（正文ではありません）</div>' : ''}</details>`).join('')}`;
 }
@@ -410,10 +416,21 @@ document.addEventListener('change', e => {
   if (t.dataset.fd !== undefined) { const i = S.inspections.find(x => x.id === V.insp); i.findings[+t.dataset.k][t.dataset.fd] = t.value; save(); if (t.dataset.fd === 'status') render(); }
   if (t.dataset.set !== undefined) { S.settings[t.dataset.set] = t.value; save(); }
 });
-let qt;
+let qt, composing = false;
+// 日本語入力（IME）の変換中は検索しない。確定したら結果だけを書き換える
+function searchUpdate(t){
+  V[t.dataset.input] = t.value;
+  clearTimeout(qt);
+  qt = setTimeout(() => {
+    const box = document.getElementById('res-' + t.dataset.input);
+    if (box) box.innerHTML = t.dataset.input === 'q' ? listResults() : lawResultsHTML();
+  }, 300);
+}
+document.addEventListener('compositionstart', e => { if (e.target.dataset && e.target.dataset.input) composing = true; });
+document.addEventListener('compositionend', e => { if (e.target.dataset && e.target.dataset.input) { composing = false; searchUpdate(e.target); } });
 document.addEventListener('input', e => {
   const t = e.target;
-  if (t.dataset.input) { V[t.dataset.input] = t.value; clearTimeout(qt); qt = setTimeout(() => { const pos = t.selectionStart; render(); const n = document.querySelector(`[data-input="${t.dataset.input}"]`); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }, 250); }
+  if (t.dataset.input) { if (e.isComposing || composing) return; searchUpdate(t); }
   if (t.dataset.ins === 'inspectors' || t.dataset.ins === 'witness' || t.dataset.ins === 'memo') { const i = S.inspections.find(x => x.id === V.insp); i[t.dataset.ins] = t.value; save(); }
   if (t.dataset.fd === 'text' || t.dataset.fd === 'basis') { const i = S.inspections.find(x => x.id === V.insp); i.findings[+t.dataset.k][t.dataset.fd] = t.value; save(); }
 });

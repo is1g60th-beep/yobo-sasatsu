@@ -294,7 +294,8 @@ function hl(html, q){
 }
 
 // ===== e-Gov 法令API から条文の正文を取得 =====
-const EGOV_ID = { '消防法': '323AC0000000186', '消防法施行令': '336CO0000000037', '消防法施行規則': '336M50000008006' };
+const EGOV_ID = { '消防法': '323AC1000000186', '消防法施行令': '336CO0000000037', '消防法施行規則': '336M50000008006' };
+const EGOV_NUM = { '消防法': '昭和二十三年法律第百八十六号', '消防法施行令': '昭和三十六年政令第三十七号', '消防法施行規則': '昭和三十六年自治省令第六号' };
 const artCache = {};
 // '8条の2の4' → '8_2_4'（範囲や別表は対象外）
 function artNo(a){ const m = String(a || '').match(/^(\d+)条((?:の\d+)*)$/); return m ? m[1] + m[2].replace(/の/g, '_') : null; }
@@ -331,11 +332,17 @@ function xmlArticleText(art){
 async function fetchArticle(law, art){
   const key = law + art; if (artCache[key]) return artCache[key];
   // 仕様書の例は「第十一条」形式。算用数字形式も順に試す
-  const cands = [artKanji(art), artNo(art), art.replace(/条/, '').replace(/の/g, '_')].filter((v, i, x) => v && x.indexOf(v) === i);
+  // 法令は法令番号（確実）→法令ID、条は「第十一条」形式→算用数字形式の順に試す
+  const arts = [artKanji(art), artNo(art)].filter(Boolean);
+  const cands = [];
+  for (const a of arts) cands.push(`lawNum=${encodeURIComponent(EGOV_NUM[law])};article=${encodeURIComponent(a)}`);
+  cands.push(`lawId=${EGOV_ID[law]};article=${encodeURIComponent(arts[0])}`);
   let last;
   for (const c of cands) {
+    let res;
+    try { res = await fetch(`https://laws.e-gov.go.jp/api/1/articles;${c}`); }
+    catch (e) { e.net = true; throw e; } // 通信自体ができない場合は他の形式も無駄なので中止
     try {
-      const res = await fetch(`https://laws.e-gov.go.jp/api/1/articles;lawId=${EGOV_ID[law]};article=${encodeURIComponent(c)}`);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const xml = new DOMParser().parseFromString(await res.text(), 'application/xml');
       const code = xml.querySelector('Result > Code');
@@ -353,8 +360,8 @@ function showArticle(b){
   fetchArticle(law, art).then(t => {
     box.innerHTML = `<div class="lt egov-t">${esc(t)}</div><div class="note">出典：e-Gov 法令検索（法令API）・現行の条文</div>`;
     b.remove();
-  }).catch(() => {
-    box.innerHTML = `<div class="warn">正文を取得できませんでした（電波状況、または Claude 上で開いている場合は外部通信が制限されています）。上の「e-Gov 法令検索で正文を見る」から「第${esc(art)}」を探してください。</div>`;
+  }).catch(e => {
+    box.innerHTML = `<div class="warn">正文を取得できませんでした。${e && e.net ? '通信できませんでした（電波状況、または Claude 上で開いている場合は外部通信が制限されています）。' : 'e-Gov から条文が返りませんでした。'}上の「e-Gov 法令検索で正文を見る」から「第${esc(art)}」を探してください。<br><small>詳細：${esc(e && e.message || '')}</small></div>`;
   });
 }
 

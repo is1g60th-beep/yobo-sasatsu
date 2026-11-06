@@ -1,6 +1,6 @@
 // 消防法令の要旨（条文の要約。正文は e-Gov 法令検索で確認）
 const EGOV = {
-  '消防法': 'https://laws.e-gov.go.jp/law/323AC0000000186',
+  '消防法': 'https://laws.e-gov.go.jp/law/323AC1000000186',
   '消防法施行令': 'https://laws.e-gov.go.jp/law/336CO0000000037',
   '消防法施行規則': 'https://laws.e-gov.go.jp/law/336M50000008006',
 };

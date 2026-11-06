@@ -1,3 +1,4 @@
+const APP_VER = '2026.11.06-4';
 // ===== 保存 =====
 const KEY = 'ibi-sasatsu-v1';
 let storageOK = true;
@@ -273,7 +274,7 @@ function lawResults(q, filt){
   return out;
 }
 function vLaws(){
-  return `<div class="bar"><h1>条文検索</h1></div>
+  return `<div class="bar"><h1>条文検索</h1><span class="s">版 ${APP_VER}</span></div>
   <input class="search" type="search" placeholder="例：避難口 / 厨房 / 令21条 / 条例23条" value="${esc(V.lawQ || '')}" data-input="lawQ">
   <div class="chips f">${[['all','すべて'],['nat','消防法令（要旨）'],['loc','揖斐郡 条例・規程（全文）'],['kok','告示']].map(([k, l]) => `<button class="chip ${V.lawF === k ? 'on' : ''}" data-act="lawf" data-k="${k}">${l}</button>`).join('')}</div>
   <div id="res-lawQ">${lawResultsHTML()}</div>`;
@@ -413,6 +414,7 @@ function vSettings(){
   <section class="card"><h2>出典</h2>
     <p class="s">揖斐郡消防組合 火災予防条例・火災予防規則・火災予防査察規程・危険物規制規則・遠隔移報要綱・表示制度要綱（fd-ibi.jp 掲載PDF）、消防法・同施行令・同施行規則（e-Gov 法令検索）、消防庁告示一覧（fdma.go.jp）。</p>
     <p class="note">設置義務の判定は主要な基準を簡略化した目安です。最終判断は必ず条文・運用基準で行ってください。</p>
+    <p class="note">アプリの版：${APP_VER}</p>
   </section>`;
 }
 

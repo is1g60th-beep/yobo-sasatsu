@@ -261,7 +261,7 @@ function lawResults(q, filt){
   const hit = s => { const t = z2h(s); return terms.every(w => t.includes(w)); };
   if (filt === 'all' || filt === 'nat') for (const n of NATIONAL) {
     const txt = `${n[0]} ${n[1]} ${n[2]} ${n[3]}`;
-    if (!terms.length || hit(txt) || hit(`${n[0] === '消防法施行令' ? '令' : n[0] === '消防法施行規則' ? '規則' : '消防法'}${n[1]}`)) out.push({ kind: 'nat', title: /^別表/.test(n[1]) ? `${n[0]} ${n[1]}` : `${n[0]} 第${n[1].replace('〜', '〜第')}`, head: n[2], text: n[3], url: EGOV[n[0]] });
+    if (!terms.length || hit(txt) || hit(`${n[0] === '消防法施行令' ? '令' : n[0] === '消防法施行規則' ? '規則' : '消防法'}${n[1]}`)) out.push({ kind: 'nat', title: /^別表/.test(n[1]) ? `${n[0]} ${n[1]}` : `${n[0]} 第${n[1].replace('〜', '〜第')}`, head: n[2], text: n[3], url: EGOV[n[0]], law: n[0], art: n[1] });
   }
   if (filt === 'all' || filt === 'loc') for (const a of LT.arts) {
     const doc = LT.docs.find(d => d.key === a.d);
@@ -283,14 +283,79 @@ function lawResultsHTML(){
   const rs = lawResults(q, V.lawF);
   const lim = 60;
   return `<div class="s">${rs.length}件${rs.length > lim ? `（先頭${lim}件を表示）` : ''}${!q ? ' ・ キーワードを入れて検索（未入力時は査察規程を表示）' : ''}</div>
-  ${rs.slice(0, lim).map(r => `<details class="card law-r ${r.kind}"><summary><span class="tag">${{ nat: '法令', loc: '揖斐郡', kok: '告示' }[r.kind]}</span><b>${esc(r.title)}</b> ${esc(r.head)}</summary>
-    ${r.text ? `<div class="lt">${hl(esc(r.text), q)}</div>` : ''}<a href="${esc(r.url)}" target="_blank" rel="noopener">${r.kind === 'nat' ? 'e-Gov 法令検索で正文を見る' : r.kind === 'loc' ? '原本PDF（fd-ibi.jp）' : '告示を開く'} ↗</a>${r.kind === 'nat' ? '<div class="note">要旨（正文ではありません）</div>' : ''}</details>`).join('')}`;
+  ${rs.slice(0, lim).map((r, k) => `<details class="card law-r ${r.kind}" ${k === 0 && V.autoOpen ? 'open' : ''}><summary><span class="tag">${{ nat: '法令', loc: '揖斐郡', kok: '告示' }[r.kind]}</span><b>${esc(r.title)}</b> ${esc(r.head)}</summary>
+    ${r.text ? `<div class="lt">${hl(esc(r.text), q)}</div>` : ''}<a href="${esc(r.url)}" target="_blank" rel="noopener">${r.kind === 'nat' ? 'e-Gov 法令検索で正文を見る' : r.kind === 'loc' ? '原本PDF（fd-ibi.jp）' : '告示を開く'} ↗</a>${r.kind === 'nat' ? `<div class="note">要旨（正文ではありません）</div>${artNo(r.art) ? `<button class="btn sm egov" data-act="egov" data-law="${esc(r.law)}" data-art="${esc(r.art)}">この条の正文を表示</button><div class="egov-out"></div>` : ''}` : ''}</details>`).join('')}`;
 }
 function hl(html, q){
   const ts = z2h(q).trim().split(/\s+/).filter(Boolean); if (!ts.length) return html;
   let h = z2h(html);
   for (const t of ts) { const e = esc(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); h = h.replace(new RegExp(e, 'g'), m => `<mark>${m}</mark>`); }
   return h;
+}
+
+// ===== e-Gov 法令API から条文の正文を取得 =====
+const EGOV_ID = { '消防法': '323AC0000000186', '消防法施行令': '336CO0000000037', '消防法施行規則': '336M50000008006' };
+const artCache = {};
+// '8条の2の4' → '8_2_4'（範囲や別表は対象外）
+function artNo(a){ const m = String(a || '').match(/^(\d+)条((?:の\d+)*)$/); return m ? m[1] + m[2].replace(/の/g, '_') : null; }
+function kanjiNum(n){
+  n = +n; const d = '〇一二三四五六七八九';
+  if (n < 10) return d[n];
+  let out = '';
+  const h = Math.floor(n / 100), t = Math.floor(n % 100 / 10), o = n % 10;
+  if (h) out += (h > 1 ? d[h] : '') + '百';
+  if (t) out += (t > 1 ? d[t] : '') + '十';
+  if (o) out += d[o];
+  return out;
+}
+// '8条の2の4' → '第八条の二の四'
+function artKanji(a){ const m = String(a || '').match(/^(\d+)条((?:の\d+)*)$/); return m ? '第' + kanjiNum(m[1]) + '条' + m[2].replace(/\d+/g, kanjiNum) : null; }
+function xmlArticleText(art){
+  const out = [];
+  const txt = el => el ? el.textContent.replace(/\s+/g, '') : '';
+  const cap = art.querySelector(':scope > ArticleCaption'), tit = art.querySelector(':scope > ArticleTitle');
+  if (cap) out.push(txt(cap));
+  art.querySelectorAll(':scope > Paragraph').forEach((p, i) => {
+    const num = txt(p.querySelector(':scope > ParagraphNum'));
+    const sen = txt(p.querySelector(':scope > ParagraphSentence'));
+    out.push(i === 0 ? `${txt(tit)}　${sen}` : `${num}　${sen}`);
+    p.querySelectorAll('Item, Subitem1, Subitem2, Subitem3').forEach(it => {
+      const depth = { Item: 1, Subitem1: 2, Subitem2: 3, Subitem3: 4 }[it.tagName] || 1;
+      const t = it.querySelector(':scope > ItemTitle, :scope > Subitem1Title, :scope > Subitem2Title, :scope > Subitem3Title');
+      const ss = it.querySelector(':scope > ItemSentence, :scope > Subitem1Sentence, :scope > Subitem2Sentence, :scope > Subitem3Sentence');
+      out.push('　'.repeat(depth) + `${txt(t)}　${txt(ss)}`);
+    });
+  });
+  return out.join('\n');
+}
+async function fetchArticle(law, art){
+  const key = law + art; if (artCache[key]) return artCache[key];
+  // 仕様書の例は「第十一条」形式。算用数字形式も順に試す
+  const cands = [artKanji(art), artNo(art), art.replace(/条/, '').replace(/の/g, '_')].filter((v, i, x) => v && x.indexOf(v) === i);
+  let last;
+  for (const c of cands) {
+    try {
+      const res = await fetch(`https://laws.e-gov.go.jp/api/1/articles;lawId=${EGOV_ID[law]};article=${encodeURIComponent(c)}`);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const xml = new DOMParser().parseFromString(await res.text(), 'application/xml');
+      const code = xml.querySelector('Result > Code');
+      if (code && code.textContent.trim() !== '0') throw new Error(xml.querySelector('Result > Message')?.textContent || 'not found');
+      const a = xml.querySelector('Article');
+      if (!a) throw new Error('not found');
+      return (artCache[key] = xmlArticleText(a));
+    } catch (e) { last = e; }
+  }
+  throw last;
+}
+function showArticle(b){
+  const box = b.nextElementSibling, law = b.dataset.law, art = b.dataset.art;
+  box.innerHTML = '<div class="s">e-Gov から取得中…</div>';
+  fetchArticle(law, art).then(t => {
+    box.innerHTML = `<div class="lt egov-t">${esc(t)}</div><div class="note">出典：e-Gov 法令検索（法令API）・現行の条文</div>`;
+    b.remove();
+  }).catch(() => {
+    box.innerHTML = `<div class="warn">正文を取得できませんでした（電波状況、または Claude 上で開いている場合は外部通信が制限されています）。上の「e-Gov 法令検索で正文を見る」から「第${esc(art)}」を探してください。</div>`;
+  });
 }
 
 // ===== 違反処理の流れ =====
@@ -387,7 +452,13 @@ document.addEventListener('click', e => {
       DL.save({ filename: `様式第${V.docKind}号_${(o.name || '対象物').replace(/[\\/:*?"<>|]/g, '')}_${i.date}.html`, data: html }).then(() => msg('#docmsg', '保存しました。ブラウザで開いて印刷できます。'), () => msg('#docmsg', '保存されませんでした'));
       break;
     }
-    case 'lawq': go('laws', { lawQ: lawQuery(b.dataset.q), lawF: 'all' }); break;
+    case 'lawq': {
+      go('laws', { lawQ: lawQuery(b.dataset.q), lawF: 'all', autoOpen: true });
+      // 根拠条文が消防法令なら、その条の正文をすぐ取得して表示
+      const eb = document.querySelector('details[open] [data-act=egov]'); if (eb) showArticle(eb);
+      break;
+    }
+    case 'egov': showArticle(b); break;
     case 'lawf': V.lawF = b.dataset.k; render(); break;
     case 'export': DL.save({ filename: `査察記録バックアップ_${today()}.json`, data: JSON.stringify(S, null, 1) }).then(() => msg('#setmsg', '書き出しました'), () => msg('#setmsg', '書き出されませんでした')); break;
     case 'copyjson': navigator.clipboard.writeText(JSON.stringify(S)).then(() => msg('#setmsg', 'コピーしました'), () => msg('#setmsg', 'コピーできませんでした')); break;
@@ -419,7 +490,7 @@ document.addEventListener('change', e => {
 let qt, composing = false;
 // 日本語入力（IME）の変換中は検索しない。確定したら結果だけを書き換える
 function searchUpdate(t){
-  V[t.dataset.input] = t.value;
+  V[t.dataset.input] = t.value; V.autoOpen = false;
   clearTimeout(qt);
   qt = setTimeout(() => {
     const box = document.getElementById('res-' + t.dataset.input);

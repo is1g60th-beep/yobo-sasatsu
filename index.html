@@ -1003,9 +1003,13 @@ async function fetchArticle(law, art){
       const xml = new DOMParser().parseFromString(await res.text(), 'application/xml');
       const code = xml.querySelector('Result > Code');
       if (code && code.textContent.trim() !== '0') throw new Error(xml.querySelector('Result > Message')?.textContent || 'not found');
-      const a = xml.querySelector('Article');
-      if (!a) throw new Error('not found');
-      return (artCache[key] = xmlArticleText(a));
+      // ApplData 内にはリクエストの条番号が <Article>第八条</Article> として入っているので、本文側（LawContents 内）を読む
+      const lc = xml.querySelector('LawContents');
+      const a = (lc && lc.querySelector('Article')) || [...xml.getElementsByTagName('Article')].find(el => el.children.length);
+      let text = a ? xmlArticleText(a) : '';
+      if (!text.replace(/\s/g, '') && lc) text = lc.textContent.replace(/[ \t]+/g, '').replace(/\n{2,}/g, '\n').trim();
+      if (!text.replace(/\s/g, '')) throw new Error('条文が空でした');
+      return (artCache[key] = text);
     } catch (e) { last = e; }
   }
   throw last;

@@ -1,4 +1,4 @@
-const APP_VER = '2026.11.06-4';
+const APP_VER = '2026.11.07-5';
 // ===== 保存 =====
 const KEY = 'ibi-sasatsu-v1';
 let storageOK = true;
@@ -134,11 +134,14 @@ function vDetail(){
   const ins = S.inspections.filter(i => i.objId === o.id).sort((a, b) => b.date.localeCompare(a.date));
   const badge = s => s === 'req' ? '<b class="st req">必要</b>' : s === 'chk' ? '<b class="st chk">要確認</b>' : '<b class="st no">不要</b>';
   return `<div class="bar"><button class="btn ghost" data-act="home">‹ 一覧</button><h1>${esc(o.name || '（名称未設定）')}</h1></div>
-  <section class="card">
-    <div class="s">${esc(o.addr || '')}</div>
-    <div class="s">${esc(USE[o.use]?.label)} ${esc(USE[o.use]?.name)}${USE[o.use]?.tok ? '（特定防火対象物）' : ''}</div>
-    <div class="s">延べ ${esc(o.area || 0)}㎡ ／ 地上${esc(o.floorsAbove || 0)}階・地下${esc(o.floorsBelow || 0)}階 ／ 収容 ${esc(o.cap || 0)}人</div>
-    <div class="cls k${c.k}"><b>${c.label}</b><span>定期査察 ${c.freq}・主体 ${c.by}</span><small>揖斐郡消防組合火災予防査察規程 別表第1・第2</small></div>
+  <section class="card sheet">
+    <dl class="form">
+      <dt>所在地</dt><dd>${esc(o.addr || '—')}</dd>
+      <dt>用途</dt><dd>${esc(USE[o.use]?.label)} ${esc(USE[o.use]?.name)}${USE[o.use]?.tok ? '<span class="tok">特定</span>' : ''}</dd>
+      <dt>規模</dt><dd>延べ <b class="num">${esc(o.area || 0)}</b>㎡　地上${esc(o.floorsAbove || 0)}階／地下${esc(o.floorsBelow || 0)}階</dd>
+      <dt>収容人員</dt><dd><b class="num">${esc(o.cap || 0)}</b>人</dd>
+      <dt>査察区分</dt><dd class="cls k${c.k}"><b>${c.label}</b><span>定期査察 ${c.freq}（${c.by}）</span><small>査察規程 別表第1・第2</small></dd>
+    </dl>
     ${pub.length ? `<div class="warn">公表制度の対象：${pub.join('・')}が未設置と認められた場合、結果通知から14日経過後も同一違反があれば組合ホームページで公表（条例47条の2、規則15条・16条）</div>` : ''}
     <div class="row"><button class="btn pri" data-act="newinsp" data-id="${o.id}">査察を開始</button><button class="btn" data-act="edit" data-id="${o.id}">編集</button></div>
   </section>
@@ -175,7 +178,7 @@ function vInspect(){
     const r = i.results[c.id] || '';
     return `<div class="ck ${r}"><div class="t">${esc(c.text)}${c.cond ? `<small>（${c.cond}）</small>` : ''}</div>
       <button class="law" data-act="lawq" data-q="${esc(c.basis)}">${esc(c.basis)}</button>
-      <div class="seg">${[['ok','適'],['ng','不備'],['na','該当なし']].map(([v, l]) => `<button class="${r === v ? 'on ' + v : ''}" data-act="res" data-c="${esc(c.id)}" data-v="${v}">${l}</button>`).join('')}</div>
+      <div class="seg" role="group" aria-label="判定">${[['ok','適','適'],['ng','否','不備'],['na','－','該当なし']].map(([v, g, l]) => `<button class="stamp ${v}${r === v ? ' on' : ''}${r === v && V.justStamped === c.id ? ' pressed' : ''}" aria-pressed="${r === v}" data-act="res" data-c="${esc(c.id)}" data-v="${v}"><span class="seal">${g}</span><span class="cap">${l}</span></button>`).join('')}</div>
     </div>`; }).join('')}</section>`).join('')}
   <section class="card"><h2>指摘事項（不備欠陥事項）</h2>
     <p class="note">「不備」にした項目は自動で追加されます。文言・期限は編集できます。</p>
@@ -276,7 +279,7 @@ function lawResults(q, filt){
 function vLaws(){
   return `<div class="bar"><h1>条文検索</h1><span class="s">版 ${APP_VER}</span></div>
   <input class="search" type="search" placeholder="例：避難口 / 厨房 / 令21条 / 条例23条" value="${esc(V.lawQ || '')}" data-input="lawQ">
-  <div class="chips f">${[['all','すべて'],['nat','消防法令（要旨）'],['loc','揖斐郡 条例・規程（全文）'],['kok','告示']].map(([k, l]) => `<button class="chip ${V.lawF === k ? 'on' : ''}" data-act="lawf" data-k="${k}">${l}</button>`).join('')}</div>
+  <div class="chips filt">${[['all','すべて'],['nat','消防法令（要旨）'],['loc','揖斐郡 条例・規程（全文）'],['kok','告示']].map(([k, l]) => `<button class="chip ${V.lawF === k ? 'on' : ''}" data-act="lawf" data-k="${k}">${l}</button>`).join('')}</div>
   <div id="res-lawQ">${lawResultsHTML()}</div>`;
 }
 function lawResultsHTML(){
@@ -453,7 +456,7 @@ document.addEventListener('click', e => {
     }
     case 'openinsp': go('inspect', { insp: id }); break;
     case 'backinsp': go('inspect'); break;
-    case 'res': setResult(b.dataset.c, b.dataset.v); { const y = window.scrollY; render(); window.scrollTo(0, y); } break;
+    case 'res': setResult(b.dataset.c, b.dataset.v); V.justStamped = b.dataset.c; { const y = window.scrollY; render(); window.scrollTo(0, y); } break;
     case 'addfd': { const i = S.inspections.find(x => x.id === V.insp); i.findings.push({ text: '', basis: '', deadline: '', status: 'open' }); save(); const y = window.scrollY; render(); window.scrollTo(0, y); break; }
     case 'delfd': { const i = S.inspections.find(x => x.id === V.insp); const f = i.findings.splice(+b.dataset.k, 1)[0]; if (f && f.from) delete i.results[f.from]; save(); const y = window.scrollY; render(); window.scrollTo(0, y); break; }
     case 'delinsp': confirmBox('この査察記録を削除します。', () => { const i = S.inspections.find(x => x.id === V.insp); S.inspections = S.inspections.filter(x => x.id !== V.insp); save(); go('detail', { id: i.objId }); }); break;

@@ -4,93 +4,155 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>予防査察アプリ（揖斐郡 条例・規程対応）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=BIZ+UDPMincho:wght@400;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f4f3f0;--card:#fff;--ink:#1d1f22;--sub:#5f646b;--line:#e2e0db;--red:#b3261e;--red2:#fbe9e7;--amb:#8a5a00;--amb2:#fff3d6;--grn:#1e6b3a;--grn2:#e3f3e8;--blue:#1f4f8f;--blue2:#e6eef9}
-@media (prefers-color-scheme:dark){:root{--bg:#141517;--card:#1e2023;--ink:#ecebe8;--sub:#a3a7ad;--line:#33363b;--red:#ff8a80;--red2:#3a1f1d;--amb:#ffcf70;--amb2:#382c12;--grn:#7fd99b;--grn2:#16301f;--blue:#9cc2ff;--blue2:#1a2638}}
+/* 点検票：JIS安全色（防火の赤・安全の緑・注意の黄）を意味のある色としてだけ使う */
+:root{
+  --paper:#EEF1EF; --sheet:#FFFFFF; --rule:#C5CCC9; --rule2:#E1E6E3; --ink:#1F2328; --sub:#59615E;
+  --red:#C8102E; --red-t:#FBE6E9; --green:#00805A; --green-t:#E2F2EB; --yellow:#E8A800; --yellow-t:#FFF4D1; --blue:#1F5AA6;
+  --gothic:"BIZ UDPGothic","Hiragino Sans","Noto Sans JP",sans-serif; --mincho:"BIZ UDPMincho","Hiragino Mincho ProN","Yu Mincho",serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --paper:#171B1A; --sheet:#202624; --rule:#3A4340; --rule2:#2C3331; --ink:#E9EEEC; --sub:#A4AEAA;
+  --red:#FF5C6E; --red-t:#3A1C21; --green:#3CC48F; --green-t:#15302A; --yellow:#FFC93C; --yellow-t:#3A3016; --blue:#8DB6F2;
+}}
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP","Yu Gothic UI",sans-serif;-webkit-text-size-adjust:100%}
-#view{max-width:720px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 8px) 12px calc(84px + env(safe-area-inset-bottom))}
-h1{font-size:19px;margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-h2{font-size:16px;margin:0 0 10px}
-h3{font-size:14px;margin:16px 0 6px;color:var(--sub)}
-.bar{display:flex;align-items:center;gap:8px;margin:6px 0 12px}
-.card{display:block;width:100%;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin:0 0 10px;text-align:left;color:inherit;font:inherit}
-button.card{cursor:pointer}
-.obj .t{font-weight:700;font-size:17px}
+html,body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.65 var(--gothic);-webkit-text-size-adjust:100%;font-feature-settings:"palt" 0}
+#view{max-width:720px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 10px) 14px calc(92px + env(safe-area-inset-bottom))}
+button,input,select,textarea{font-family:var(--gothic)}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums;font-weight:700}
+
+/* 見出し */
+.bar{display:flex;align-items:center;gap:8px;margin:4px 0 14px;min-height:48px}
+h1{font-size:22px;line-height:1.3;margin:0;flex:1;min-width:0;font-weight:700;letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar .s{font-size:12px}
+h2{font-size:15px;margin:0 0 10px;padding-top:10px;border-top:3px solid var(--ink);font-weight:700;letter-spacing:.04em}
+h3{font-size:13.5px;margin:18px 0 4px;color:var(--sub);font-weight:700}
+
+/* 様式の欄（白い用紙）。影なし、角は小さく */
+.card{display:block;width:100%;background:var(--sheet);border:1px solid var(--rule);border-radius:3px;padding:0 14px 14px;margin:0 0 12px;text-align:left;color:inherit;font:inherit}
+.card>h2:first-child{margin:0 -14px 10px;padding:10px 14px 0}
+button.card{cursor:pointer;padding:12px 14px}
 .s{color:var(--sub);font-size:14px}
-.note{color:var(--sub);font-size:12.5px;margin:6px 0}
+.note{color:var(--sub);font-size:12.5px;margin:6px 0;line-height:1.6}
+.empty{color:var(--sub);padding:36px 6px;line-height:1.9;border-top:3px solid var(--ink);margin-top:6px}
+
+/* 一覧 */
+.obj{position:relative;border-left:6px solid var(--rule)}
+.obj:has(.chip.k1),.obj:has(.chip.k2){border-left-color:var(--red)}
+.obj:has(.chip.k3){border-left-color:var(--yellow)}
+.obj .t{font-weight:700;font-size:17px;line-height:1.4}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.chips.f{margin:8px 0}
-.chip{font-size:12.5px;border:1px solid var(--line);border-radius:999px;padding:3px 10px;background:var(--bg);color:var(--ink);font-family:inherit}
-button.chip{cursor:pointer;padding:7px 12px}
-.chip.on{background:var(--ink);color:var(--card);border-color:var(--ink)}
-.chip.ng{background:var(--red2);color:var(--red);border-color:transparent;font-weight:700}
-.chip.k1,.chip.k2{background:var(--red2);color:var(--red);border-color:transparent}
-.chip.k3{background:var(--amb2);color:var(--amb);border-color:transparent}
-.chip.k4{background:var(--blue2);color:var(--blue);border-color:transparent}
-.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:15px;cursor:pointer;gap:4px}
-.btn.pri{background:var(--red);border-color:var(--red);color:#fff;font-weight:700}
-@media (prefers-color-scheme:dark){.btn.pri{color:#1a0000}}
-.btn.ghost{border-color:transparent;background:transparent;padding:8px 6px;color:var(--blue)}
-.btn.danger{color:var(--red);border-color:var(--red2)}
-.btn.sm{min-height:34px;padding:4px 10px;font-size:13px}
-.btn.wide{width:100%;margin:6px 0 10px}
-.row{display:flex;gap:8px;margin-top:10px}.row.wrap{flex-wrap:wrap}
-.search{width:100%;font:inherit;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);margin-bottom:10px}
-.empty{text-align:center;color:var(--sub);padding:40px 16px;line-height:1.9}
-.f{display:block;margin:0 0 10px}.f>span{display:block;font-size:13px;color:var(--sub);margin-bottom:3px}
-.f input,.f select,textarea,.comp select,.comp input{width:100%;font:inherit;font-size:16px;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
-.f small,.cb small{display:block;color:var(--sub);font-size:12px}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.chips.filt{margin:4px 0 10px}
+.chip{font-size:12.5px;border:1px solid var(--rule);border-radius:2px;padding:2px 8px;background:var(--sheet);color:var(--ink)}
+button.chip{cursor:pointer;padding:8px 12px;min-height:40px;font-size:13.5px}
+.chip.on{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
+.chip.ng{background:var(--red);color:#fff;border-color:var(--red);font-weight:700}
+.chip.k1,.chip.k2{color:var(--red);border-color:var(--red)}
+.chip.k3{color:var(--ink);border-color:var(--yellow);background:var(--yellow-t)}
+
+/* ボタン */
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:8px 16px;border-radius:3px;border:1.5px solid var(--ink);background:var(--sheet);color:var(--ink);font-size:15px;font-weight:700;cursor:pointer;gap:4px}
+.btn.pri{background:var(--red);border-color:var(--red);color:#fff}
+@media (prefers-color-scheme:dark){.btn.pri{color:#1a0004}}
+.btn.ghost{border-color:transparent;background:transparent;padding:8px 4px;color:var(--ink);font-weight:400}
+.btn.danger{color:var(--red);border-color:var(--rule);font-weight:400}
+.btn.sm{min-height:36px;padding:4px 12px;font-size:13px}
+.btn.wide{width:100%;margin:6px 0 12px}
+.row{display:flex;gap:8px;margin-top:12px}.row.wrap{flex-wrap:wrap}.row .btn.pri{flex:1}
+
+/* 入力 */
+.search{width:100%;font-size:16px;padding:12px 14px;border-radius:3px;border:1.5px solid var(--ink);background:var(--sheet);color:var(--ink);margin-bottom:8px}
+.f{display:block;margin:0 0 12px}.f>span{display:block;font-size:13px;color:var(--sub);margin-bottom:3px;font-weight:700}
+.f input,.f select,textarea,.comp select,.comp input{width:100%;font-size:16px;padding:10px;border-radius:2px;border:1px solid var(--rule);border-bottom:2px solid var(--ink);background:var(--paper);color:var(--ink)}
+.f small,.cb small{display:block;color:var(--sub);font-size:12px;font-weight:400}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
 @media (max-width:380px){.g2{grid-template-columns:1fr}}
-.cb{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line)}
+.cb{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--rule2)}
 .cb input{width:22px;height:22px;margin:1px 0 0;flex:none;accent-color:var(--red)}
 .cb.inline{border:0;padding:0 0 6px}
 .hide{display:none}
 .comp{display:grid;grid-template-columns:1fr 110px auto;gap:6px;margin-bottom:6px;align-items:center}
-.sticky{position:sticky;bottom:calc(70px + env(safe-area-inset-bottom));z-index:2}
-.cls{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--bg)}
-.cls b{display:block;font-size:17px}.cls span{display:block;font-size:14px}.cls small{color:var(--sub);font-size:11.5px}
-.cls.k1,.cls.k2{background:var(--red2)}.cls.k1 b,.cls.k2 b{color:var(--red)}
-.cls.k3{background:var(--amb2)}.cls.k4{background:var(--blue2)}
-.warn{background:var(--amb2);color:var(--amb);border-radius:10px;padding:10px 12px;font-size:13.5px;margin:10px 0}
-.li{display:flex;justify-content:space-between;gap:8px;width:100%;padding:12px 2px;border:0;border-top:1px solid var(--line);background:none;color:inherit;font:inherit;font-size:14.5px;text-align:left;cursor:pointer}
+.sticky{position:sticky;bottom:calc(74px + env(safe-area-inset-bottom));z-index:2}
+
+/* 対象物の罫線表（項目｜内容） */
+dl.form{display:grid;grid-template-columns:5.5em 1fr;margin:0 -14px}
+.card.sheet{padding-top:0}
+dl.form dt,dl.form dd{margin:0;padding:9px 12px;border-bottom:1px solid var(--rule)}
+dl.form dt{background:var(--paper);color:var(--sub);font-size:13px;font-weight:700;border-right:1px solid var(--rule)}
+dl.form dd{font-size:15px}
+.tok{display:inline-block;margin-left:6px;font-size:11.5px;font-weight:700;color:var(--red);border:1px solid var(--red);border-radius:2px;padding:0 5px;vertical-align:1px}
+.cls b{display:block;font-size:18px}.cls span{display:block;font-size:14px}.cls small{color:var(--sub);font-size:11.5px}
+.cls.k1 b,.cls.k2 b{color:var(--red)}
+.warn{background:var(--yellow-t);color:var(--ink);border-left:5px solid var(--yellow);padding:10px 12px;font-size:13.5px;margin:12px 0;line-height:1.6}
+
+/* 査察記録 */
+.li{display:flex;justify-content:space-between;gap:8px;width:100%;padding:13px 0;border:0;border-top:1px solid var(--rule2);background:none;color:inherit;font:inherit;font-size:14.5px;text-align:left;cursor:pointer}
 .ng{color:var(--red)}
-.jr{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
-.jr .t{font-weight:700}.jr.no{opacity:.6}
-.st{flex:none;font-size:12px;border-radius:6px;padding:2px 7px;height:fit-content;white-space:nowrap}
-.st.req{background:var(--red2);color:var(--red)}.st.chk{background:var(--amb2);color:var(--amb)}.st.no{background:var(--bg);color:var(--sub)}
-.law{border:0;background:none;color:var(--blue);font:inherit;font-size:13px;padding:2px 0;text-align:left;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
-.prog{height:6px;background:var(--bg);border-radius:9px;overflow:hidden;margin:6px 0 4px}.prog div{height:100%;background:var(--grn)}
-.ck{padding:12px 0;border-top:1px solid var(--line)}
-.ck .t{font-size:15px}.ck .t small{color:var(--amb)}
-.ck.ng{background:linear-gradient(90deg,var(--red2),transparent 70%);margin:0 -14px;padding:12px 14px}
-.seg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px}
-.seg button{min-height:44px;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-size:15px;cursor:pointer}
-.seg .on.ok{background:var(--grn);border-color:var(--grn);color:#fff}
-.seg .on.ng{background:var(--red);border-color:var(--red);color:#fff}
-.seg .on.na{background:var(--sub);border-color:var(--sub);color:#fff}
-@media (prefers-color-scheme:dark){.seg .on.ok,.seg .on.ng,.seg .on.na{color:#111}}
-.fd{border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px}
-.fdh{display:flex;gap:8px;align-items:center;margin-bottom:6px}.fdh b{width:26px;height:26px;border-radius:50%;background:var(--red);color:#fff;display:grid;place-items:center;font-size:13px;flex:none}
-.fdh select{flex:1;font:inherit;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
-.step{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--line)}.step>b{flex:none;width:26px;height:26px;border-radius:50%;background:var(--ink);color:var(--card);display:grid;place-items:center;font-size:13px}.step .t{font-weight:700}
-table.mini{width:100%;border-collapse:collapse;font-size:13px}.mini th,.mini td{border-top:1px solid var(--line);padding:6px 4px;text-align:left;vertical-align:top}.mini td:first-child{white-space:nowrap;font-weight:700}
-details.law-r summary{cursor:pointer;list-style:none;font-size:14.5px}details.law-r summary::-webkit-details-marker{display:none}
-.tag{font-size:11px;border-radius:5px;padding:1px 6px;margin-right:6px;background:var(--blue2);color:var(--blue);vertical-align:2px}
-.loc .tag{background:var(--red2);color:var(--red)}.kok .tag{background:var(--amb2);color:var(--amb)}
-.lt{white-space:pre-wrap;font-size:14px;line-height:1.75;margin:10px 0;padding-top:10px;border-top:1px solid var(--line)}
-.egov{margin-top:8px}.egov-t{border-left:3px solid var(--blue);padding-left:10px;border-top:0}
-.law-r a{color:var(--blue);font-size:13.5px;display:inline-block;margin-top:4px}
-mark{background:#ffe08a;color:#000;border-radius:2px}
-nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:5}
-nav button{flex:1;border:0;background:none;color:var(--sub);font:inherit;font-size:11.5px;padding:8px 0 9px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+
+/* 判定結果：左の色帯が JIS 安全色 */
+.jr{display:grid;grid-template-columns:4.2em 1fr;gap:10px;padding:11px 0;border-top:1px solid var(--rule2)}
+.jr .t{font-weight:700;line-height:1.45}.jr.no{opacity:.55}
+.st{font-size:12px;font-weight:700;text-align:center;padding:3px 0;height:fit-content;border-radius:2px}
+.st.req{background:var(--red);color:#fff}.st.chk{background:var(--yellow);color:#1F2328}.st.no{border:1px solid var(--rule);color:var(--sub)}
+@media (prefers-color-scheme:dark){.st.req{color:#1a0004}}
+.law{border:0;background:none;color:var(--blue);font:inherit;font-size:13px;padding:3px 0;text-align:left;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+
+/* 査察チェック：判子 */
+.prog{height:8px;background:var(--rule2);overflow:hidden;margin:10px 0 4px}.prog div{height:100%;background:var(--green)}
+.ck{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:start;padding:14px 0;border-top:1px solid var(--rule2)}
+.ck .t{font-size:15px;line-height:1.55}.ck .t small{color:var(--sub);display:block}
+.ck .law{grid-column:1}
+.ck .seg{grid-column:2;grid-row:1 / span 2}
+.ck.ng .t{color:var(--red);font-weight:700}
+@media (max-width:420px){.ck{grid-template-columns:1fr}.ck .seg{grid-column:1;grid-row:auto;justify-content:flex-start}}
+.seg{display:flex;gap:6px}
+.stamp{display:flex;flex-direction:column;align-items:center;gap:2px;border:0;background:none;color:var(--sub);cursor:pointer;padding:2px;min-width:54px}
+.stamp .seal{display:grid;place-items:center;width:48px;height:48px;border-radius:50%;border:1.5px dashed var(--rule);font-family:var(--mincho);font-size:22px;font-weight:700;color:var(--sub);background:var(--sheet)}
+.stamp .cap{font-size:11px;line-height:1.2}
+.stamp.on .seal{border:3px double currentColor;transform:rotate(-9deg)}
+.stamp.ok.on{color:var(--green)}.stamp.ok.on .seal{color:var(--green);background:var(--green-t)}
+.stamp.ng.on{color:var(--red)}.stamp.ng.on .seal{color:var(--red);background:var(--red-t)}
+.stamp.na.on{color:var(--ink)}.stamp.na.on .seal{color:var(--ink);background:var(--paper)}
+.stamp.on .cap{font-weight:700}
+.stamp.pressed .seal{animation:press .22s cubic-bezier(.3,1.6,.6,1)}
+@keyframes press{from{transform:scale(1.35) rotate(-2deg);opacity:.2}to{transform:scale(1) rotate(-9deg);opacity:1}}
+@media (prefers-reduced-motion:reduce){.stamp.pressed .seal{animation:none}}
+
+/* 指摘事項 */
+.fd{border:1px solid var(--rule);border-left:5px solid var(--red);padding:10px;margin-bottom:10px;background:var(--sheet)}
+.fdh{display:flex;gap:8px;align-items:center;margin-bottom:6px}.fdh b{font-size:15px;color:var(--red);min-width:1.6em}
+.fdh select{flex:1;font-size:15px;padding:8px;border-radius:2px;border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+
+/* 違反処理の流れ（順序がある） */
+.step{display:grid;grid-template-columns:30px 1fr;gap:10px;padding:12px 0;border-top:1px solid var(--rule2)}
+.step>b{width:28px;height:28px;border-radius:50%;border:2px solid var(--ink);display:grid;place-items:center;font-size:13px}
+.step .t{font-weight:700}
+table.mini{width:100%;border-collapse:collapse;font-size:13px}.mini th,.mini td{border:1px solid var(--rule);padding:6px;text-align:left;vertical-align:top}.mini th{background:var(--paper)}.mini td:first-child{white-space:nowrap;font-weight:700}
+
+/* 条文 */
+details.law-r{padding:12px 14px}
+details.law-r summary{cursor:pointer;list-style:none;font-size:14.5px;line-height:1.55}details.law-r summary::-webkit-details-marker{display:none}
+details.law-r[open] summary{padding-bottom:8px;border-bottom:1px solid var(--rule2)}
+.tag{font-size:11px;font-weight:700;border-radius:2px;padding:1px 6px;margin-right:6px;border:1px solid var(--blue);color:var(--blue);vertical-align:2px}
+.loc .tag{border-color:var(--red);color:var(--red)}.kok .tag{border-color:var(--sub);color:var(--sub)}
+.lt{white-space:pre-wrap;font-family:var(--mincho);font-size:15px;line-height:1.95;margin:10px 0}
+.egov{margin-top:8px}.egov-t{border-left:3px solid var(--blue);padding-left:12px}
+.law-r a{color:var(--blue);font-size:13.5px;display:inline-block;margin-top:6px}
+mark{background:var(--yellow);color:#1F2328;padding:0 1px}
+
+/* 下部ナビ：選択中は上辺に赤い帯 */
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--sheet);border-top:1.5px solid var(--ink);padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav button{flex:1;border:0;border-top:4px solid transparent;background:none;color:var(--sub);font-size:11.5px;padding:6px 0 9px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
 nav button svg{width:24px;height:24px}
-nav button.on{color:var(--red);font-weight:700}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:grid;place-items:center;z-index:9;padding:20px}.modal .box{background:var(--card);border-radius:14px;padding:18px;max-width:340px;width:100%}
-/* 書類プレビュー */
-.paper{background:#fff;color:#000;border:1px solid var(--line);border-radius:6px;padding:18px 16px;margin:10px 0 20px;font-family:"Hiragino Mincho ProN","Yu Mincho",serif;font-size:14px;line-height:1.75;overflow-x:auto}
-.paper .c{text-align:center}.paper .r{text-align:right}.paper .frm,.paper .small{font-size:12px}.paper h2{letter-spacing:.3em;font-size:18px;margin:10px 0}
+nav button.on{color:var(--ink);font-weight:700;border-top-color:var(--red)}
+.modal{position:fixed;inset:0;background:rgba(20,24,23,.5);display:grid;place-items:center;z-index:9;padding:20px}.modal .box{background:var(--sheet);border-top:4px solid var(--red);padding:18px;max-width:340px;width:100%}
+
+/* 書類プレビュー（常に白い紙） */
+.paper{background:#fff;color:#000;border:1px solid var(--rule);padding:20px 16px;margin:10px 0 20px;font-family:var(--mincho);font-size:14px;line-height:1.8;overflow-x:auto}
+.paper .c{text-align:center}.paper .r{text-align:right}.paper .frm,.paper .small{font-size:12px}.paper h2{letter-spacing:.3em;font-size:18px;margin:10px 0;border:0;padding:0}
 .dt{width:100%;border-collapse:collapse;margin:4px 0 10px;font-size:13px}.dt th,.dt td{border:1px solid #000;padding:4px 6px;vertical-align:top;text-align:left}.dt th{background:#f2f2f2;white-space:nowrap}.list td:first-child{text-align:center;width:2.5em}
 </style>
 </head>
@@ -654,7 +716,7 @@ const KOKUJI = [
   ['消防庁 告示一覧（全件）','https://www.fdma.go.jp/laws/kokuji/'],
 ];
 
-const APP_VER = '2026.11.06-4';
+const APP_VER = '2026.11.07-5';
 // ===== 保存 =====
 const KEY = 'ibi-sasatsu-v1';
 let storageOK = true;
@@ -790,11 +852,14 @@ function vDetail(){
   const ins = S.inspections.filter(i => i.objId === o.id).sort((a, b) => b.date.localeCompare(a.date));
   const badge = s => s === 'req' ? '<b class="st req">必要</b>' : s === 'chk' ? '<b class="st chk">要確認</b>' : '<b class="st no">不要</b>';
   return `<div class="bar"><button class="btn ghost" data-act="home">‹ 一覧</button><h1>${esc(o.name || '（名称未設定）')}</h1></div>
-  <section class="card">
-    <div class="s">${esc(o.addr || '')}</div>
-    <div class="s">${esc(USE[o.use]?.label)} ${esc(USE[o.use]?.name)}${USE[o.use]?.tok ? '（特定防火対象物）' : ''}</div>
-    <div class="s">延べ ${esc(o.area || 0)}㎡ ／ 地上${esc(o.floorsAbove || 0)}階・地下${esc(o.floorsBelow || 0)}階 ／ 収容 ${esc(o.cap || 0)}人</div>
-    <div class="cls k${c.k}"><b>${c.label}</b><span>定期査察 ${c.freq}・主体 ${c.by}</span><small>揖斐郡消防組合火災予防査察規程 別表第1・第2</small></div>
+  <section class="card sheet">
+    <dl class="form">
+      <dt>所在地</dt><dd>${esc(o.addr || '—')}</dd>
+      <dt>用途</dt><dd>${esc(USE[o.use]?.label)} ${esc(USE[o.use]?.name)}${USE[o.use]?.tok ? '<span class="tok">特定</span>' : ''}</dd>
+      <dt>規模</dt><dd>延べ <b class="num">${esc(o.area || 0)}</b>㎡　地上${esc(o.floorsAbove || 0)}階／地下${esc(o.floorsBelow || 0)}階</dd>
+      <dt>収容人員</dt><dd><b class="num">${esc(o.cap || 0)}</b>人</dd>
+      <dt>査察区分</dt><dd class="cls k${c.k}"><b>${c.label}</b><span>定期査察 ${c.freq}（${c.by}）</span><small>査察規程 別表第1・第2</small></dd>
+    </dl>
     ${pub.length ? `<div class="warn">公表制度の対象：${pub.join('・')}が未設置と認められた場合、結果通知から14日経過後も同一違反があれば組合ホームページで公表（条例47条の2、規則15条・16条）</div>` : ''}
     <div class="row"><button class="btn pri" data-act="newinsp" data-id="${o.id}">査察を開始</button><button class="btn" data-act="edit" data-id="${o.id}">編集</button></div>
   </section>
@@ -831,7 +896,7 @@ function vInspect(){
     const r = i.results[c.id] || '';
     return `<div class="ck ${r}"><div class="t">${esc(c.text)}${c.cond ? `<small>（${c.cond}）</small>` : ''}</div>
       <button class="law" data-act="lawq" data-q="${esc(c.basis)}">${esc(c.basis)}</button>
-      <div class="seg">${[['ok','適'],['ng','不備'],['na','該当なし']].map(([v, l]) => `<button class="${r === v ? 'on ' + v : ''}" data-act="res" data-c="${esc(c.id)}" data-v="${v}">${l}</button>`).join('')}</div>
+      <div class="seg" role="group" aria-label="判定">${[['ok','適','適'],['ng','否','不備'],['na','－','該当なし']].map(([v, g, l]) => `<button class="stamp ${v}${r === v ? ' on' : ''}${r === v && V.justStamped === c.id ? ' pressed' : ''}" aria-pressed="${r === v}" data-act="res" data-c="${esc(c.id)}" data-v="${v}"><span class="seal">${g}</span><span class="cap">${l}</span></button>`).join('')}</div>
     </div>`; }).join('')}</section>`).join('')}
   <section class="card"><h2>指摘事項（不備欠陥事項）</h2>
     <p class="note">「不備」にした項目は自動で追加されます。文言・期限は編集できます。</p>
@@ -932,7 +997,7 @@ function lawResults(q, filt){
 function vLaws(){
   return `<div class="bar"><h1>条文検索</h1><span class="s">版 ${APP_VER}</span></div>
   <input class="search" type="search" placeholder="例：避難口 / 厨房 / 令21条 / 条例23条" value="${esc(V.lawQ || '')}" data-input="lawQ">
-  <div class="chips f">${[['all','すべて'],['nat','消防法令（要旨）'],['loc','揖斐郡 条例・規程（全文）'],['kok','告示']].map(([k, l]) => `<button class="chip ${V.lawF === k ? 'on' : ''}" data-act="lawf" data-k="${k}">${l}</button>`).join('')}</div>
+  <div class="chips filt">${[['all','すべて'],['nat','消防法令（要旨）'],['loc','揖斐郡 条例・規程（全文）'],['kok','告示']].map(([k, l]) => `<button class="chip ${V.lawF === k ? 'on' : ''}" data-act="lawf" data-k="${k}">${l}</button>`).join('')}</div>
   <div id="res-lawQ">${lawResultsHTML()}</div>`;
 }
 function lawResultsHTML(){
@@ -1109,7 +1174,7 @@ document.addEventListener('click', e => {
     }
     case 'openinsp': go('inspect', { insp: id }); break;
     case 'backinsp': go('inspect'); break;
-    case 'res': setResult(b.dataset.c, b.dataset.v); { const y = window.scrollY; render(); window.scrollTo(0, y); } break;
+    case 'res': setResult(b.dataset.c, b.dataset.v); V.justStamped = b.dataset.c; { const y = window.scrollY; render(); window.scrollTo(0, y); } break;
     case 'addfd': { const i = S.inspections.find(x => x.id === V.insp); i.findings.push({ text: '', basis: '', deadline: '', status: 'open' }); save(); const y = window.scrollY; render(); window.scrollTo(0, y); break; }
     case 'delfd': { const i = S.inspections.find(x => x.id === V.insp); const f = i.findings.splice(+b.dataset.k, 1)[0]; if (f && f.from) delete i.results[f.from]; save(); const y = window.scrollY; render(); window.scrollTo(0, y); break; }
     case 'delinsp': confirmBox('この査察記録を削除します。', () => { const i = S.inspections.find(x => x.id === V.insp); S.inspections = S.inspections.filter(x => x.id !== V.insp); save(); go('detail', { id: i.objId }); }); break;

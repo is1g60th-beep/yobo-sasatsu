@@ -1,4 +1,4 @@
-const APP_VER = '2026.11.07-5';
+const APP_VER = '2026.11.14-6';
 // ===== 保存 =====
 const KEY = 'ibi-sasatsu-v1';
 let storageOK = true;
@@ -23,9 +23,9 @@ function go(view, extra){ Object.assign(V, { view }, extra || {}); render(); win
 const LT = JSON.parse(document.getElementById('localtexts').textContent);
 
 function render(){
-  const nav = { list: 'list', edit: 'list', detail: 'list', inspect: 'list', doc: 'list', laws: 'laws', guide: 'guide', settings: 'settings' }[V.view];
+  const nav = { list: 'list', edit: 'list', detail: 'list', inspect: 'list', doc: 'list', laws: 'laws', qa: 'qa', guide: 'guide', settings: 'settings' }[V.view];
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.go === nav));
-  const f = { list: vList, edit: vEdit, detail: vDetail, inspect: vInspect, doc: vDoc, laws: vLaws, guide: vGuide, settings: vSettings }[V.view];
+  const f = { list: vList, edit: vEdit, detail: vDetail, inspect: vInspect, doc: vDoc, laws: vLaws, qa: vQA, guide: vGuide, settings: vSettings }[V.view];
   $('#view').innerHTML = (storageOK ? '' : '<div class="warn">この端末のブラウザでは保存領域が使えません。設定 → バックアップで記録を書き出してください。</div>') + f();
   if (V.view === 'edit') bindEdit();
 }
@@ -475,6 +475,10 @@ document.addEventListener('click', e => {
       break;
     }
     case 'egov': showArticle(b); break;
+    case 'qaask': qaAsk(); break;
+    case 'qastop': if (qaAbort) qaAbort.abort(); break;
+    case 'qaclear': confirmBox('質問の履歴をすべて消します。', () => { S.qa = []; save(); render(); }); break;
+    case 'qaref': go('laws', { lawQ: b.dataset.q, lawF: 'all', autoOpen: true }); { const eb = document.querySelector('details[open] [data-act=egov]'); if (eb) showArticle(eb); } break;
     case 'lawf': V.lawF = b.dataset.k; render(); break;
     case 'export': DL.save({ filename: `査察記録バックアップ_${today()}.json`, data: JSON.stringify(S, null, 1) }).then(() => msg('#setmsg', '書き出しました'), () => msg('#setmsg', '書き出されませんでした')); break;
     case 'copyjson': navigator.clipboard.writeText(JSON.stringify(S)).then(() => msg('#setmsg', 'コピーしました'), () => msg('#setmsg', 'コピーできませんでした')); break;
@@ -502,6 +506,7 @@ document.addEventListener('change', e => {
   if (t.dataset.ins !== undefined) { const i = S.inspections.find(x => x.id === V.insp); i[t.dataset.ins] = t.value; save(); if (t.dataset.ins === 'date') render(); }
   if (t.dataset.fd !== undefined) { const i = S.inspections.find(x => x.id === V.insp); i.findings[+t.dataset.k][t.dataset.fd] = t.value; save(); if (t.dataset.fd === 'status') render(); }
   if (t.dataset.set !== undefined) { S.settings[t.dataset.set] = t.value; save(); }
+  if (t.id === 'qaObj') V.qaObj = t.value;
 });
 let qt, composing = false;
 // 日本語入力（IME）の変換中は検索しない。確定したら結果だけを書き換える
@@ -518,6 +523,7 @@ document.addEventListener('compositionend', e => { if (e.target.dataset && e.tar
 document.addEventListener('input', e => {
   const t = e.target;
   if (t.dataset.input) { if (e.isComposing || composing) return; searchUpdate(t); }
+  if (t.id === 'qaIn') V.qaDraft = t.value;
   if (t.dataset.ins === 'inspectors' || t.dataset.ins === 'witness' || t.dataset.ins === 'memo') { const i = S.inspections.find(x => x.id === V.insp); i[t.dataset.ins] = t.value; save(); }
   if (t.dataset.fd === 'text' || t.dataset.fd === 'basis') { const i = S.inspections.find(x => x.id === V.insp); i.findings[+t.dataset.k][t.dataset.fd] = t.value; save(); }
 });
@@ -529,4 +535,5 @@ if (!window.claude) DL = { save: ({ filename, data }) => new Promise(res => {
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], { type: filename.endsWith('.json') ? 'application/json' : 'text/html' }));
   a.download = filename; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); res();
 }) };
+if (window.claude && claude.use) claude.use('sample').then(sm => { if (sm) { SAMPLE = sm; if (V.view === 'qa') render(); } }).catch(() => {});
 if (window.claude && claude.use) claude.use('downloads').then(d => { if (d) { DL = d; if (['settings', 'doc'].includes(V.view)) render(); } }).catch(() => {});

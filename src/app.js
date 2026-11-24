@@ -1,4 +1,4 @@
-const APP_VER = '2026.11.14-6';
+const APP_VER = '2026.11.24-7';
 // ===== 保存 =====
 const KEY = 'ibi-sasatsu-v1';
 let storageOK = true;

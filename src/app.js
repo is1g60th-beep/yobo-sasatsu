@@ -1,4 +1,4 @@
-const APP_VER = '2026.11.24-7';
+const APP_VER = '2026.11.24-8';
 // ===== 保存 =====
 const KEY = 'ibi-sasatsu-v1';
 let storageOK = true;
@@ -23,9 +23,9 @@ function go(view, extra){ Object.assign(V, { view }, extra || {}); render(); win
 const LT = JSON.parse(document.getElementById('localtexts').textContent);
 
 function render(){
-  const nav = { list: 'list', edit: 'list', detail: 'list', inspect: 'list', doc: 'list', laws: 'laws', qa: 'qa', guide: 'guide', settings: 'settings' }[V.view];
+  const nav = { list: 'list', edit: 'list', detail: 'list', inspect: 'list', doc: 'list', pre: 'list', laws: 'laws', qa: 'qa', guide: 'guide', settings: 'settings' }[V.view];
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.go === nav));
-  const f = { list: vList, edit: vEdit, detail: vDetail, inspect: vInspect, doc: vDoc, laws: vLaws, qa: vQA, guide: vGuide, settings: vSettings }[V.view];
+  const f = { list: vList, edit: vEdit, detail: vDetail, inspect: vInspect, doc: vDoc, pre: vPre, laws: vLaws, qa: vQA, guide: vGuide, settings: vSettings }[V.view];
   $('#view').innerHTML = (storageOK ? '' : '<div class="warn">この端末のブラウザでは保存領域が使えません。設定 → バックアップで記録を書き出してください。</div>') + f();
   if (V.view === 'edit') bindEdit();
 }
@@ -143,6 +143,7 @@ function vDetail(){
       <dt>査察区分</dt><dd class="cls k${c.k}"><b>${c.label}</b><span>定期査察 ${c.freq}（${c.by}）</span><small>査察規程 別表第1・第2</small></dd>
     </dl>
     ${pub.length ? `<div class="warn">公表制度の対象：${pub.join('・')}が未設置と認められた場合、結果通知から14日経過後も同一違反があれば組合ホームページで公表（条例47条の2、規則15条・16条）</div>` : ''}
+    ${(() => { const started = !!(o.pre && o.pre.touched); const pf = preFindings(o), n = pf.filter(f => f.kind === 'ng').length, c = pf.length - n; return `<button class="pre-link" data-act="pre" data-id="${o.id}"><b>事前調査（下準備）</b><span>${started ? `指摘見込み ${n}件・要確認 ${c}件` : '点検結果報告書などから予想される指摘を確認'}</span></button>`; })()}
     <div class="row"><button class="btn pri" data-act="newinsp" data-id="${o.id}">査察を開始</button><button class="btn" data-act="edit" data-id="${o.id}">編集</button></div>
   </section>
   <section class="card"><h2>査察記録</h2>
@@ -455,6 +456,10 @@ document.addEventListener('click', e => {
       S.inspections.push(i); const o = S.objects.find(x => x.id === id); if (o) o.updated = Date.now(); save(); go('inspect', { insp: i.id }); break;
     }
     case 'openinsp': go('inspect', { insp: id }); break;
+    case 'pre': go('pre', { id }); break;
+    case 'preadd': { const o = S.objects.find(x => x.id === V.id); preOf(o)[b.dataset.k].push(b.dataset.k === 'hose' ? { kind: '屋内消火栓ホース' } : {}); save(); const y = window.scrollY; render(); window.scrollTo(0, y); break; }
+    case 'predel': { const o = S.objects.find(x => x.id === V.id); preOf(o)[b.dataset.k].splice(+b.dataset.i, 1); save(); const y = window.scrollY; render(); window.scrollTo(0, y); break; }
+    case 'prestart': { const o = S.objects.find(x => x.id === id); if (o) preStart(o); break; }
     case 'backinsp': go('inspect'); break;
     case 'res': setResult(b.dataset.c, b.dataset.v); V.justStamped = b.dataset.c; { const y = window.scrollY; render(); window.scrollTo(0, y); } break;
     case 'addfd': { const i = S.inspections.find(x => x.id === V.insp); i.findings.push({ text: '', basis: '', deadline: '', status: 'open' }); save(); const y = window.scrollY; render(); window.scrollTo(0, y); break; }
@@ -507,6 +512,7 @@ document.addEventListener('change', e => {
   if (t.dataset.fd !== undefined) { const i = S.inspections.find(x => x.id === V.insp); i.findings[+t.dataset.k][t.dataset.fd] = t.value; save(); if (t.dataset.fd === 'status') render(); }
   if (t.dataset.set !== undefined) { S.settings[t.dataset.set] = t.value; save(); }
   if (t.id === 'qaObj') V.qaObj = t.value;
+  if (t.dataset.pre !== undefined) { const o = S.objects.find(x => x.id === V.id); if (o) { preSet(o, t.dataset.pre, t.value); o.updated = Date.now(); save(); preRefresh(); } }
 });
 let qt, composing = false;
 // 日本語入力（IME）の変換中は検索しない。確定したら結果だけを書き換える
@@ -524,6 +530,7 @@ document.addEventListener('input', e => {
   const t = e.target;
   if (t.dataset.input) { if (e.isComposing || composing) return; searchUpdate(t); }
   if (t.id === 'qaIn') V.qaDraft = t.value;
+  if (t.dataset.pre !== undefined) { const o = S.objects.find(x => x.id === V.id); if (o) { preSet(o, t.dataset.pre, t.value); save(); clearTimeout(preT); preT = setTimeout(preRefresh, 300); } }
   if (t.dataset.ins === 'inspectors' || t.dataset.ins === 'witness' || t.dataset.ins === 'memo') { const i = S.inspections.find(x => x.id === V.insp); i[t.dataset.ins] = t.value; save(); }
   if (t.dataset.fd === 'text' || t.dataset.fd === 'basis') { const i = S.inspections.find(x => x.id === V.insp); i.findings[+t.dataset.k][t.dataset.fd] = t.value; save(); }
 });
